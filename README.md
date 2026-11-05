@@ -2,7 +2,7 @@
 
 Desktop app to start and stop a local Redis server interactively (egui).
 
-The Redis Windows runtime is **embedded in the `.exe`**. On first launch it is extracted to `%LOCALAPPDATA%\RedisManager\runtime\redis`, so you only need to distribute a single binary.
+The Redis Windows runtime is **embedded in the `.exe` **. On first launch it is extracted to `%LOCALAPPDATA%\RedisManager\runtime\redis` , so you only need to distribute a single binary.
 
 ## Requirements
 
@@ -12,17 +12,16 @@ The Redis Windows runtime is **embedded in the `.exe`**. On first launch it is e
 ## Build & run
 
 ```powershell
-cd D:\Coding\Rust\redis-manager
-cargo run
+cargo build
 ```
 
 Release build:
 
 ```powershell
-cargo run --release
+cargo build --release
 ```
 
-Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe`.
+Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe` .
 
 ## Features
 
