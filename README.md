@@ -6,23 +6,23 @@ The Redis Windows runtime is **embedded in the `.exe`**. On first launch it is e
 
 ## Requirements
 
-* Rust stable (`rustup`) with `x86_64-pc-windows-gnu`
-* MinGW-w64 (`%USERPROFILE%\.local\mingw64`) — used as the linker
+* Rust stable (`rustup`)
+* On Windows GNU toolchain: MinGW-w64 on `PATH` (also used by `build.rs` for the app icon via `windres`)
 
 ## Build & run
 
 ```powershell
-$env:Path = "$env:USERPROFILE\.cargo\bin;$env:USERPROFILE\.local\mingw64\bin;" + $env:Path
 cd D:\Coding\Rust\redis-manager
+cargo run
+```
+
+Release build:
+
+```powershell
 cargo run --release
 ```
 
-Release binary:
-
-```powershell
-cargo build --release
-# output: target\release\redis-manager.exe
-```
+Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe`.
 
 ## Features
 
