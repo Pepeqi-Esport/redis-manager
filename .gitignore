@@ -1,0 +1,6 @@
+/target/
+runtime/redis/*.pid
+runtime/redis/dump.rdb
+runtime/redis/appendonly.aof
+runtime/redis/temp-*.rdb
+runtime/redis/autostart.vbs
