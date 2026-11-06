@@ -119,8 +119,10 @@ pub fn start(paths: &RedisPaths) -> Result<(), String> {
         RedisStatus::Stopped => {}
     }
 
+    // Relative conf path: this Redis build is Cygwin-based and rejects absolute
+    // Windows paths (e.g. C:\...) when opening the config file.
     let mut cmd = Command::new(&paths.server);
-    cmd.arg(&paths.conf)
+    cmd.arg("redis.conf")
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

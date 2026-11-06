@@ -12,6 +12,17 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 fn main() -> eframe::Result<()> {
+    // Silent login start: register this via HKCU Run as `redis-manager.exe --autostart`.
+    if std::env::args().skip(1).any(|arg| arg == "--autostart") {
+        match run_autostart() {
+            Ok(()) => std::process::exit(0),
+            Err(err) => {
+                let _ = write_autostart_log(&format!("autostart failed: {err}"));
+                std::process::exit(1);
+            }
+        }
+    }
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([440.0, 520.0])
@@ -26,6 +37,37 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|cc| Ok(Box::new(RedisManagerApp::new(cc)))),
     )
+}
+
+fn run_autostart() -> Result<(), String> {
+    runtime_bundle::ensure_extracted()?;
+    let paths =
+        RedisPaths::discover().ok_or_else(|| "Redis runtime not found after extract.".to_string())?;
+    redis_ctl::start(&paths)?;
+    let _ = write_autostart_log("autostart ok");
+    Ok(())
+}
+
+fn write_autostart_log(message: &str) -> Result<(), String> {
+    let dir = std::env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .map(|p| p.join("RedisManager"))
+        .ok_or_else(|| "LOCALAPPDATA not set".to_string())?;
+
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let line = format!("{} {}\n", chrono_like_timestamp(), message);
+    std::fs::write(dir.join("autostart.log"), line).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn chrono_like_timestamp() -> String {
+    // Local wall-clock without extra deps (good enough for a tiny debug log).
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    format!("unix:{secs}")
 }
 
 fn load_app_icon() -> egui::IconData {

@@ -2,12 +2,17 @@ use crate::redis_ctl::RedisPaths;
 use std::path::{Path, PathBuf};
 
 #[cfg(windows)]
-use winreg::enums::{HKEY_CURRENT_USER, KEY_ALL_ACCESS, KEY_READ, KEY_SET_VALUE};
+use winreg::enums::{HKEY_CURRENT_USER, KEY_ALL_ACCESS, KEY_READ, KEY_SET_VALUE, REG_BINARY};
 #[cfg(windows)]
-use winreg::RegKey;
+use winreg::{RegKey, RegValue};
 
 const RUN_VALUE_NAME: &str = "RedisManager";
-const LAUNCHER_NAME: &str = "autostart.vbs";
+const AUTOSTART_ARG: &str = "--autostart";
+const LEGACY_LAUNCHER_NAME: &str = "autostart.vbs";
+
+/// StartupApproved: first byte 2 = enabled, 3 = disabled (Windows Settings > Startup apps).
+#[cfg(windows)]
+const STARTUP_APPROVED_ENABLED: [u8; 12] = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnableOutcome {
@@ -21,7 +26,7 @@ pub enum DisableOutcome {
     AlreadyAbsent,
 }
 
-/// Whether Redis is registered to start at Windows logon (Herd-style).
+/// Whether Redis is registered to start at Windows logon.
 pub fn is_enabled() -> bool {
     entry_exists()
 }
@@ -34,12 +39,12 @@ pub fn enable(paths: &RedisPaths) -> Result<EnableOutcome, String> {
         }
 
         // OFF -> ON: if an entry already exists, remove it then recreate.
-        let existed = entry_exists() || launcher_exists(paths);
+        let existed = entry_exists() || legacy_launcher_exists(paths);
         if existed {
             remove_entry(Some(paths))?;
         }
 
-        create_entry(paths)?;
+        create_entry()?;
 
         if !entry_exists() {
             return Err("Failed to register start at login (entry missing after create).".into());
@@ -63,7 +68,7 @@ pub fn disable(paths: Option<&RedisPaths>) -> Result<DisableOutcome, String> {
     #[cfg(windows)]
     {
         // ON -> OFF: if the entry still exists, remove it.
-        let existed = entry_exists() || paths.map(launcher_exists).unwrap_or(false);
+        let existed = entry_exists() || paths.map(legacy_launcher_exists).unwrap_or(false);
         if !existed {
             return Ok(DisableOutcome::AlreadyAbsent);
         }
@@ -95,14 +100,20 @@ fn entry_exists() -> bool {
     }
 }
 
-fn launcher_exists(paths: &RedisPaths) -> bool {
-    launcher_path(&paths.root).is_file()
+fn legacy_launcher_exists(paths: &RedisPaths) -> bool {
+    legacy_launcher_path(&paths.root).is_file()
 }
 
 #[cfg(windows)]
-fn create_entry(paths: &RedisPaths) -> Result<(), String> {
-    let launcher = write_launcher(paths)?;
-    let command = format!("wscript.exe //nologo \"{}\"", path_for_windows(&launcher));
+fn create_entry() -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| format!("Failed to resolve app path: {e}"))?;
+    let exe = normalize_path(&exe);
+    if !exe.is_file() {
+        return Err(format!("App executable not found:\n{}", exe.display()));
+    }
+
+    // Run the same binary headlessly at logon. Avoids fragile VBS + Cygwin path issues.
+    let command = format!("\"{}\" {AUTOSTART_ARG}", path_for_windows(&exe));
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let (run_key, _) = hkcu
@@ -115,6 +126,24 @@ fn create_entry(paths: &RedisPaths) -> Result<(), String> {
     run_key
         .set_value(RUN_VALUE_NAME, &command)
         .map_err(|e| format!("Failed to write startup entry: {e}"))?;
+
+    // Keep the entry enabled in Windows Startup Apps settings.
+    let (approved_key, _) = hkcu
+        .create_subkey_with_flags(
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
+            KEY_ALL_ACCESS,
+        )
+        .map_err(|e| format!("Failed to open StartupApproved key: {e}"))?;
+
+    approved_key
+        .set_raw_value(
+            RUN_VALUE_NAME,
+            &RegValue {
+                vtype: REG_BINARY,
+                bytes: STARTUP_APPROVED_ENABLED.to_vec(),
+            },
+        )
+        .map_err(|e| format!("Failed to enable startup approval: {e}"))?;
 
     Ok(())
 }
@@ -136,11 +165,20 @@ fn remove_entry(paths: Option<&RedisPaths>) -> Result<(), String> {
                 .map_err(|e| format!("Failed to delete startup entry: {e}"))?;
         }
 
+        // Best-effort: clear StartupApproved so Settings UI stays consistent.
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        if let Ok(approved_key) = hkcu.open_subkey_with_flags(
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
+            KEY_SET_VALUE,
+        ) {
+            let _ = approved_key.delete_value(RUN_VALUE_NAME);
+        }
+
         if let Some(paths) = paths {
-            let launcher = launcher_path(&paths.root);
+            let launcher = legacy_launcher_path(&paths.root);
             if launcher.is_file() {
                 std::fs::remove_file(&launcher)
-                    .map_err(|e| format!("Failed to delete autostart launcher: {e}"))?;
+                    .map_err(|e| format!("Failed to delete legacy autostart launcher: {e}"))?;
             }
         }
 
@@ -163,31 +201,8 @@ fn read_run_value() -> Option<String> {
     run_key.get_value::<String, _>(RUN_VALUE_NAME).ok()
 }
 
-fn launcher_path(redis_root: &Path) -> PathBuf {
-    redis_root.join(LAUNCHER_NAME)
-}
-
-fn write_launcher(paths: &RedisPaths) -> Result<PathBuf, String> {
-    let root = normalize_path(&paths.root);
-    let server = normalize_path(&paths.server);
-    let conf = normalize_path(&paths.conf);
-
-    let root_s = escape_vbs(&path_for_windows(&root));
-    let server_s = escape_vbs(&path_for_windows(&server));
-    let conf_s = escape_vbs(&path_for_windows(&conf));
-
-    // WindowStyle 0 = hidden; do not wait for process exit.
-    let script = format!(
-        r#"Set sh = CreateObject("WScript.Shell")
-sh.CurrentDirectory = "{root_s}"
-sh.Run """{server_s}"" ""{conf_s}""", 0, False
-"#
-    );
-
-    let path = launcher_path(&root);
-    std::fs::write(&path, script)
-        .map_err(|e| format!("Failed to write autostart launcher: {e}"))?;
-    Ok(path)
+fn legacy_launcher_path(redis_root: &Path) -> PathBuf {
+    redis_root.join(LEGACY_LAUNCHER_NAME)
 }
 
 fn normalize_path(path: &Path) -> PathBuf {
@@ -197,13 +212,9 @@ fn normalize_path(path: &Path) -> PathBuf {
 
 fn path_for_windows(path: &Path) -> String {
     let mut s = path.display().to_string().replace('/', "\\");
-    // canonicalize() on Windows may prefix \\?\ which breaks wscript/VBS.
+    // canonicalize() on Windows may prefix \\?\ which can break Run entries.
     if let Some(stripped) = s.strip_prefix(r"\\?\") {
         s = stripped.to_string();
     }
     s
-}
-
-fn escape_vbs(value: &str) -> String {
-    value.replace('"', "\"\"")
 }
