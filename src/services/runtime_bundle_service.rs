@@ -1,3 +1,4 @@
+use crate::utils::BUNDLE_MARKER_NAME;
 use rust_embed::Embed;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,8 +14,6 @@ use std::path::{Path, PathBuf};
 #[exclude = "temp-*.rdb"]
 struct RedisRuntime;
 
-const MARKER_NAME: &str = ".bundle_id";
-
 /// Directory where embedded Redis files are extracted.
 pub fn install_dir() -> Result<PathBuf, String> {
     let base = std::env::var_os("LOCALAPPDATA")
@@ -28,7 +27,7 @@ pub fn install_dir() -> Result<PathBuf, String> {
 /// Ensure embedded runtime exists on disk. Re-extracts when the app version changes.
 pub fn ensure_extracted() -> Result<PathBuf, String> {
     let dir = install_dir()?;
-    let marker = dir.join(MARKER_NAME);
+    let marker = dir.join(BUNDLE_MARKER_NAME);
     let bundle_id = bundle_id();
 
     let up_to_date = dir.join("redis-server.exe").is_file()
@@ -77,7 +76,7 @@ fn clear_readonly(path: &Path) -> std::io::Result<()> {
     let mut perms = fs::metadata(path)?.permissions();
     if perms.readonly() {
         perms.set_readonly(false);
-        fs::set_permissions(path, perms)?;
     }
+    fs::set_permissions(path, perms)?;
     Ok(())
 }

@@ -1,3 +1,5 @@
+use crate::utils::{DEFAULT_REDIS_PORT, PING_TIMEOUT, RUNTIME_DIR};
+use crate::services::runtime_bundle_service;
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -8,10 +10,6 @@ use std::os::windows::process::CommandExt;
 
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
-const DEFAULT_PORT: u16 = 6379;
-const PING_TIMEOUT: Duration = Duration::from_millis(400);
-const RUNTIME_DIR: &str = "runtime/redis";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RedisStatus {
@@ -56,7 +54,7 @@ fn candidate_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
 
     // Extracted embedded runtime (single-exe distribution).
-    if let Ok(dir) = crate::runtime_bundle::install_dir() {
+    if let Ok(dir) = runtime_bundle_service::install_dir() {
         roots.push(dir);
     }
 
@@ -93,13 +91,13 @@ pub fn status(paths: &RedisPaths) -> RedisStatus {
         return RedisStatus::MissingInstall;
     }
 
-    if !is_port_open(DEFAULT_PORT) {
+    if !is_port_open(DEFAULT_REDIS_PORT) {
         return RedisStatus::Stopped;
     }
 
     RedisStatus::Running {
         pid: read_pid(&paths.pidfile),
-        port: DEFAULT_PORT,
+        port: DEFAULT_REDIS_PORT,
     }
 }
 
@@ -161,7 +159,7 @@ pub fn stop(paths: &RedisPaths) -> Result<(), String> {
                     "-h",
                     "127.0.0.1",
                     "-p",
-                    &DEFAULT_PORT.to_string(),
+                    &DEFAULT_REDIS_PORT.to_string(),
                     "SHUTDOWN",
                     "NOSAVE",
                 ])

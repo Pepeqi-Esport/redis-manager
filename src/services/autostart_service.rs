@@ -1,18 +1,15 @@
-use crate::redis_ctl::RedisPaths;
+use crate::helpers::{normalize_path, path_for_windows};
+use crate::services::redis_ctl_service::{self, RedisPaths};
+use crate::services::runtime_bundle_service;
+use crate::utils::{AUTOSTART_ARG, LEGACY_LAUNCHER_NAME, RUN_VALUE_NAME};
 use std::path::{Path, PathBuf};
 
+#[cfg(windows)]
+use crate::utils::STARTUP_APPROVED_ENABLED;
 #[cfg(windows)]
 use winreg::enums::{HKEY_CURRENT_USER, KEY_ALL_ACCESS, KEY_READ, KEY_SET_VALUE, REG_BINARY};
 #[cfg(windows)]
 use winreg::{RegKey, RegValue};
-
-const RUN_VALUE_NAME: &str = "RedisManager";
-const AUTOSTART_ARG: &str = "--autostart";
-const LEGACY_LAUNCHER_NAME: &str = "autostart.vbs";
-
-/// StartupApproved: first byte 2 = enabled, 3 = disabled (Windows Settings > Startup apps).
-#[cfg(windows)]
-const STARTUP_APPROVED_ENABLED: [u8; 12] = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnableOutcome {
@@ -24,6 +21,15 @@ pub enum EnableOutcome {
 pub enum DisableOutcome {
     Removed,
     AlreadyAbsent,
+}
+
+/// Silent login start: extract runtime and start Redis without opening the UI.
+pub fn run_autostart() -> Result<(), String> {
+    runtime_bundle_service::ensure_extracted()?;
+    let paths = RedisPaths::discover()
+        .ok_or_else(|| "Redis runtime not found after extract.".to_string())?;
+    redis_ctl_service::start(&paths)?;
+    Ok(())
 }
 
 /// Whether Redis is registered to start at Windows logon.
@@ -86,6 +92,28 @@ pub fn disable(paths: Option<&RedisPaths>) -> Result<DisableOutcome, String> {
     {
         let _ = paths;
         Err("Autostart is only supported on Windows.".into())
+    }
+}
+
+pub fn outcome_message(outcome: EnableOutcome) -> String {
+    match outcome {
+        EnableOutcome::Created => {
+            "Start at login enabled. Redis will start after Windows login.".into()
+        }
+        EnableOutcome::Recreated => {
+            "Existing entry removed and recreated. Start at login is on.".into()
+        }
+    }
+}
+
+pub fn disable_message(outcome: DisableOutcome) -> String {
+    match outcome {
+        DisableOutcome::Removed => {
+            "Start at login disabled. Startup entry removed.".into()
+        }
+        DisableOutcome::AlreadyAbsent => {
+            "Start at login already off (entry not found).".into()
+        }
     }
 }
 
@@ -203,18 +231,4 @@ fn read_run_value() -> Option<String> {
 
 fn legacy_launcher_path(redis_root: &Path) -> PathBuf {
     redis_root.join(LEGACY_LAUNCHER_NAME)
-}
-
-fn normalize_path(path: &Path) -> PathBuf {
-    path.canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-}
-
-fn path_for_windows(path: &Path) -> String {
-    let mut s = path.display().to_string().replace('/', "\\");
-    // canonicalize() on Windows may prefix \\?\ which can break Run entries.
-    if let Some(stripped) = s.strip_prefix(r"\\?\") {
-        s = stripped.to_string();
-    }
-    s
 }
