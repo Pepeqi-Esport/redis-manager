@@ -1,10 +1,11 @@
-use crate::utils::BUNDLE_MARKER_NAME;
+use crate::helpers::path_beside_exe;
+use crate::utils::{BUNDLE_MARKER_NAME, RUNTIME_DIR};
 use rust_embed::Embed;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Redis runtime files compiled into the binary.
-/// Extracted on first launch so only the .exe needs to be distributed.
+/// Extracted on first launch beside the .exe (`runtime/redis`).
 #[derive(Embed)]
 #[folder = "runtime/redis/"]
 #[exclude = "*.pid"]
@@ -14,14 +15,9 @@ use std::path::{Path, PathBuf};
 #[exclude = "temp-*.rdb"]
 struct RedisRuntime;
 
-/// Directory where embedded Redis files are extracted.
+/// Directory where embedded Redis files are extracted (next to the exe).
 pub fn install_dir() -> Result<PathBuf, String> {
-    let base = std::env::var_os("LOCALAPPDATA")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("TEMP").map(PathBuf::from))
-        .ok_or_else(|| "LOCALAPPDATA/TEMP not set".to_string())?;
-
-    Ok(base.join("RedisManager").join("runtime").join("redis"))
+    path_beside_exe(RUNTIME_DIR)
 }
 
 /// Ensure embedded runtime exists on disk. Re-extracts when the app version changes.
