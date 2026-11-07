@@ -7,11 +7,10 @@ mod services;
 mod utils;
 mod views;
 
-use crate::utils::{APP_TITLE, AUTOSTART_ARG, WINDOW_INNER_SIZE, WINDOW_MIN_INNER_SIZE};
-use crate::helpers::write_autostart_log;
+use crate::helpers::{window_icon, write_autostart_log};
 use crate::services::autostart_service;
-use crate::views::icon::load_app_icon;
-use crate::views::RedisManagerApp;
+use crate::utils::{APP_TITLE, AUTOSTART_ARG, WINDOW_INNER_SIZE, WINDOW_MIN_INNER_SIZE};
+use crate::views::HomePage;
 use eframe::egui;
 
 fn main() -> eframe::Result<()> {
@@ -34,13 +33,13 @@ fn main() -> eframe::Result<()> {
             .with_inner_size(WINDOW_INNER_SIZE)
             .with_min_inner_size(WINDOW_MIN_INNER_SIZE)
             .with_title(APP_TITLE)
-            .with_icon(load_app_icon()),
+            .with_icon(window_icon()),
         ..Default::default()
     };
 
     eframe::run_native(
         APP_TITLE,
         options,
-        Box::new(|cc| Ok(Box::new(RedisManagerApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(HomePage::new(cc)))),
     )
 }

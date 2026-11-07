@@ -10,7 +10,7 @@ fn main() {
     }
 
     println!("cargo:rerun-if-changed=assets/images/logo/icon.ico");
-    println!("cargo:rerun-if-changed=assets/images/logo/logo.png");
+    println!("cargo:rerun-if-changed=assets/images/logo/logo-256.png");
     // Rebuild when embedded Redis runtime files change.
     println!("cargo:rerun-if-changed=runtime/redis");
 }

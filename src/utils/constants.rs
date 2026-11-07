@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 pub const APP_TITLE: &str = "Redis Manager";
-pub const WINDOW_INNER_SIZE: [f32; 2] = [440.0, 520.0];
-pub const WINDOW_MIN_INNER_SIZE: [f32; 2] = [380.0, 500.0];
+pub const WINDOW_INNER_SIZE: [f32; 2] = [720.0, 820.0];
+pub const WINDOW_MIN_INNER_SIZE: [f32; 2] = [640.0, 800.0];
 
 pub const DEFAULT_REDIS_PORT: u16 = 6379;
 pub const PING_TIMEOUT: Duration = Duration::from_millis(400);

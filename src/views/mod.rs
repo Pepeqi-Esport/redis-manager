@@ -1,5 +1,5 @@
-mod app;
-mod components;
-pub mod icon;
+pub mod components;
+pub mod layouts;
+pub mod pages;
 
-pub use app::RedisManagerApp;
+pub use pages::HomePage;
