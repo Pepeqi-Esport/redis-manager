@@ -2,7 +2,7 @@
 
 Desktop app to start and stop a local Redis server interactively (egui).
 
-The Redis Windows runtime is **embedded in the `.exe` **. On first launch it is extracted to `%LOCALAPPDATA%\RedisManager\runtime\redis` , so you only need to distribute a single binary.
+The Redis Windows runtime is **embedded in the `.exe`**. On first launch it is extracted **next to the executable** (`runtime/redis/`), so you can distribute a single binary as a portable app.
 
 ## Requirements
 
@@ -21,12 +21,27 @@ Release build:
 cargo build --release
 ```
 
-Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe` .
+Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe`.
+
+## Portable layout
+
+After the first run, files beside the exe look like:
+
+```text
+redis-manager.exe
+theme.json                 # theme preference (system | light | dark)
+runtime/redis/             # extracted Redis runtime
+  redis-server.exe
+  redis.conf
+  ...
+autostart.log              # only when started with --autostart
+```
 
 ## Features
 
 * Start / stop local Redis (`127.0.0.1:6379`)
-* Live status indicator (running / not running)
-* Start at login (Windows startup entry)
+* Live status + overview cards (BeAced-style dark/light UI)
+* Theme: System / Light / Dark (saved in `theme.json` beside the exe)
+* Launch on startup (Windows Run entry via `redis-manager.exe --autostart`)
 * Single-exe distribution (embedded Redis runtime + DLLs)
-* App icon from `assets/images/logo`
+* App branding from `assets/images/logo` (`logo.png`, `logo-256.png`, `icon.ico`)
