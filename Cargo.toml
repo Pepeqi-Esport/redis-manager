@@ -11,7 +11,9 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 rust-embed = { version = "8", features = ["include-exclude"] }
 
 [build-dependencies]
-winresource = "0.1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+ico = "0.4"
+winres = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

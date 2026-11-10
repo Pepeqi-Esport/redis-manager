@@ -1,4 +1,6 @@
 //! Shared Redis Manager brand logo (window icon + in-app header).
+//!
+//! Uses `logo-256.png`, generated at build time from `logo.png` (see `build.rs`).
 
 use eframe::egui::{self, ColorImage, TextureHandle, TextureOptions};
 use image::imageops::FilterType;
@@ -27,7 +29,7 @@ pub fn window_icon() -> egui::IconData {
     }
 }
 
-/// GPU texture for the in-app header (call once from `RedisManagerApp::new`).
+/// GPU texture for the in-app header (call once from `HomePage::new`).
 pub fn load_texture(ctx: &egui::Context) -> TextureHandle {
     let (rgba, w, h) = decode_rgba(256);
     let color = ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &rgba);
