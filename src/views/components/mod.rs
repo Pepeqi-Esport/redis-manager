@@ -3,6 +3,7 @@ mod live_status;
 mod overview;
 mod service;
 mod settings;
+pub mod update;
 mod widgets;
 
 pub use header::{app_header, footer_status};

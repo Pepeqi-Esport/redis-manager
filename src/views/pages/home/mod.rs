@@ -3,6 +3,7 @@ mod theme;
 
 use crate::config::load_theme_preference;
 use crate::helpers::{load_texture, window_icon};
+use crate::helpers::update_helper::UpdatePrefs;
 use crate::services::autostart_service;
 use crate::services::redis_ctl_service::{self, RedisPaths, RedisStatus};
 use crate::services::runtime_bundle_service;
@@ -10,6 +11,7 @@ use crate::services::worker_service::{self, UiAction, WorkerMsg};
 use crate::utils::{
     apply_theme, configure_style, ThemePreference, STATUS_REFRESH_INTERVAL_MS, UI_REPAINT_INTERVAL_MS,
 };
+use crate::views::components::update::{self as update_ui, UpdateDialog, UpdateMsg};
 use crate::views::layouts::main_layout;
 use eframe::egui::{self, TextureHandle};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -29,6 +31,12 @@ pub struct HomePage {
     pub(crate) rx: Receiver<WorkerMsg>,
     pub(crate) action_tx: Sender<UiAction>,
     pub(crate) logo: TextureHandle,
+    pub(crate) update_prefs: UpdatePrefs,
+    pub(crate) update_dialog: Option<UpdateDialog>,
+    pub(crate) update_busy: bool,
+    pub(crate) update_startup_started: bool,
+    pub(crate) update_tx: Sender<UpdateMsg>,
+    pub(crate) update_rx: Receiver<UpdateMsg>,
 }
 
 impl HomePage {
@@ -45,6 +53,7 @@ impl HomePage {
             ))));
 
         let logo = load_texture(&cc.egui_ctx);
+        let (update_tx, update_rx) = update_ui::update_channel();
 
         let extract_error = runtime_bundle_service::ensure_extracted().err();
         let paths = RedisPaths::discover();
@@ -74,6 +83,12 @@ impl HomePage {
             rx,
             action_tx,
             logo,
+            update_prefs: update_ui::load_prefs(),
+            update_dialog: None,
+            update_busy: false,
+            update_startup_started: false,
+            update_tx,
+            update_rx,
         }
     }
 }
@@ -81,6 +96,7 @@ impl HomePage {
 impl eframe::App for HomePage {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll_worker();
+        self.poll_update_messages();
         self.sync_system_theme(ctx);
 
         if self.last_refresh.elapsed() >= Duration::from_millis(STATUS_REFRESH_INTERVAL_MS)
@@ -90,7 +106,15 @@ impl eframe::App for HomePage {
             self.last_refresh = Instant::now();
         }
 
-        ctx.request_repaint_after(Duration::from_millis(UI_REPAINT_INTERVAL_MS));
+        let repaint_ms = if self.update_busy || self.update_dialog.is_some() {
+            100
+        } else {
+            UI_REPAINT_INTERVAL_MS
+        };
+        ctx.request_repaint_after(Duration::from_millis(repaint_ms));
+
         main_layout(ctx, self);
+        self.ensure_startup_update_check(ctx);
+        self.show_update_dialog(ctx);
     }
 }

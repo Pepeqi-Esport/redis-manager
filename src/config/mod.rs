@@ -1,18 +1,9 @@
-use crate::helpers::path_beside_exe;
+use crate::helpers::theme_json_path;
 use crate::utils::ThemePreference;
 
-const THEME_FILE: &str = "theme.json";
-
-fn theme_path() -> Result<std::path::PathBuf, String> {
-    path_beside_exe(THEME_FILE)
-}
-
 pub fn load_theme_preference() -> ThemePreference {
-    let Ok(path) = theme_path() else {
-        return ThemePreference::System;
-    };
+    let path = theme_json_path();
     let Ok(contents) = std::fs::read_to_string(&path) else {
-        // Create default theme file beside the exe on first launch.
         let _ = save_theme_preference(ThemePreference::System);
         return ThemePreference::System;
     };
@@ -20,7 +11,7 @@ pub fn load_theme_preference() -> ThemePreference {
 }
 
 pub fn save_theme_preference(preference: ThemePreference) -> Result<(), String> {
-    let path = theme_path()?;
+    let path = theme_json_path();
     let body = format!("{{\n  \"theme\": \"{}\"\n}}\n", preference.as_str());
     std::fs::write(path, body).map_err(|e| e.to_string())
 }

@@ -7,13 +7,21 @@ mod services;
 mod utils;
 mod views;
 
-use crate::helpers::{window_icon, write_autostart_log};
+use crate::helpers::{
+    ensure_sidecar_config_files, load_dotenv, window_icon, write_autostart_log,
+};
 use crate::services::autostart_service;
-use crate::utils::{APP_TITLE, AUTOSTART_ARG, WINDOW_INNER_SIZE, WINDOW_MIN_INNER_SIZE};
+use crate::utils::{
+    fonts, APP_TITLE, AUTOSTART_ARG, WINDOW_INNER_SIZE, WINDOW_MIN_INNER_SIZE,
+};
 use crate::views::HomePage;
 use eframe::egui;
 
 fn main() -> eframe::Result<()> {
+    // Ensure sidecar `.env` / theme.json / update.json, then load ENABLE_UPDATE_CHECK.
+    ensure_sidecar_config_files();
+    load_dotenv();
+
     // Silent login start: register this via HKCU Run as `redis-manager.exe --autostart`.
     if std::env::args().skip(1).any(|arg| arg == AUTOSTART_ARG) {
         match autostart_service::run_autostart() {
@@ -40,6 +48,9 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         APP_TITLE,
         options,
-        Box::new(|cc| Ok(Box::new(HomePage::new(cc)))),
+        Box::new(|cc| {
+            fonts::install(&cc.egui_ctx);
+            Ok(Box::new(HomePage::new(cc)))
+        }),
     )
 }
