@@ -2,7 +2,7 @@
 
 Desktop app to start and stop a local Redis server interactively (egui).
 
-The Redis Windows runtime is **embedded in the `.exe`**. On first launch it is extracted **next to the executable** (`runtime/redis/`), so you can distribute a single binary as a portable app.
+The Redis Windows runtime is **embedded in the `.exe` **. On first launch it is extracted **next to the executable** ( `runtime/redis/` ), so you can distribute a single binary as a portable app.
 
 ## Requirements
 
@@ -21,7 +21,7 @@ Release build:
 cargo build --release
 ```
 
-Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe`.
+Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe` .
 
 ## Portable layout
 
@@ -41,13 +41,13 @@ autostart.log              # only when started with --autostart
 
 ## Updates
 
-Toggle in-app update checking via `.env` (project root for `cargo run`, or beside the `.exe` when packaged):
+Toggle in-app update checking via `.env` (project root for `cargo run` , or beside the `.exe` when packaged):
 
 ```env
 ENABLE_UPDATE_CHECK=true
 ```
 
-Default is `false`. When enabled, the app checks [GitHub Releases](https://github.com/codenameryuu/redis-manager/releases) on startup and via **Check update** in Settings.
+Default is `false` . When enabled, the app checks [GitHub Releases](https://github.com/Pepeqi-Esport-Reborn/redis-manager/releases) on startup and via **Check update** in Settings.
 
 * **Later** stores that remote version in `update.json` so the same release is not auto-prompted again; a newer release prompts again.
 * Manual **Check update** always reports status and can offer Update even for a dismissed version.

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::helpers::update_json_path;
 
-pub const REPO_OWNER: &str = "codenameryuu";
+pub const REPO_OWNER: &str = "Pepeqi-Esport-Reborn";
 pub const REPO_NAME: &str = "redis-manager";
 pub const BIN_NAME: &str = "redis-manager.exe";
 
