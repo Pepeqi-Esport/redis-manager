@@ -2,6 +2,7 @@ use crate::helpers::path_beside_exe;
 use crate::utils::{BUNDLE_MARKER_NAME, RUNTIME_DIR};
 use rust_embed::Embed;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 /// Redis runtime files compiled into the binary.
@@ -21,6 +22,8 @@ pub fn install_dir() -> Result<PathBuf, String> {
 }
 
 /// Ensure embedded runtime exists on disk. Re-extracts when the app version changes.
+/// Locked files (e.g. redis-server.exe while Redis is running) are skipped so sync
+/// still succeeds; they will refresh on the next launch after Redis is stopped.
 pub fn ensure_extracted() -> Result<PathBuf, String> {
     let dir = install_dir()?;
     let marker = dir.join(BUNDLE_MARKER_NAME);
@@ -50,11 +53,17 @@ pub fn ensure_extracted() -> Result<PathBuf, String> {
                 .map_err(|e| format!("Failed to create {}: {e}", parent.display()))?;
         }
 
-        fs::write(&dest, file.data.as_ref())
-            .map_err(|e| format!("Failed to extract {}: {e}", dest.display()))?;
-
-        // Clear read-only bit if present so future updates can overwrite.
         let _ = clear_readonly(&dest);
+        match fs::write(&dest, file.data.as_ref()) {
+            Ok(()) => {}
+            Err(e) if is_sharing_violation(&e) && dest.is_file() => {
+                // Keep the running binary; update remaining files and marker.
+                continue;
+            }
+            Err(e) => {
+                return Err(format!("Failed to extract {}: {e}", dest.display()));
+            }
+        }
     }
 
     fs::write(&marker, &bundle_id)
@@ -75,4 +84,11 @@ fn clear_readonly(path: &Path) -> std::io::Result<()> {
     }
     fs::set_permissions(path, perms)?;
     Ok(())
+}
+
+fn is_sharing_violation(err: &io::Error) -> bool {
+    matches!(
+        err.raw_os_error(),
+        Some(32) | Some(33) // ERROR_SHARING_VIOLATION / ERROR_LOCK_VIOLATION
+    )
 }

@@ -1,4 +1,3 @@
-use crate::helpers::update_helper::{self, current_version};
 use crate::services::redis_ctl_service::RedisStatus;
 use crate::services::worker_service::UiAction;
 use crate::utils::ThemePreference;
@@ -81,28 +80,6 @@ pub fn settings_panel(ui: &mut egui::Ui, app: &mut HomePage) {
             .clicked()
         {
             app.request(UiAction::Refresh);
-        }
-
-        if update_helper::update_check_enabled() {
-            ui.add_space(10.0);
-            let label = if app.update_busy {
-                format!("Checking… (v{})", current_version())
-            } else {
-                format!("Check update (v{})", current_version())
-            };
-            if ui
-                .add_enabled(
-                    !app.update_busy,
-                    egui::Button::new(RichText::new(label).size(13.0).color(p.text))
-                        .fill(Color32::TRANSPARENT)
-                        .stroke(Stroke::new(1.0_f32, p.border))
-                        .min_size(Vec2::new(ui.available_width(), 34.0)),
-                )
-                .clicked()
-            {
-                let ctx = ui.ctx().clone();
-                app.request_manual_update_check(&ctx);
-            }
         }
     });
 }

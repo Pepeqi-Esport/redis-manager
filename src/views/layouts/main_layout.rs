@@ -22,10 +22,13 @@ pub fn main_layout(ctx: &egui::Context, page: &mut HomePage) {
             let gap = 14.0;
             let col_w = ((available - gap) * 0.5).max(260.0);
             let card_gap = 28.0;
+            // Keep room for multi-line sync/error footer so messages stay readable.
+            let footer_reserve = 72.0_f32;
+            let columns_h = (ui.available_height() - footer_reserve).max(420.0);
 
             ui.horizontal_top(|ui| {
                 ui.allocate_ui_with_layout(
-                    egui::vec2(col_w, ui.available_height()),
+                    egui::vec2(col_w, columns_h),
                     egui::Layout::top_down(egui::Align::Min),
                     |ui| {
                         if page.paths.is_some() {
@@ -41,7 +44,7 @@ pub fn main_layout(ctx: &egui::Context, page: &mut HomePage) {
                 ui.add_space(gap);
 
                 ui.allocate_ui_with_layout(
-                    egui::vec2(col_w, ui.available_height()),
+                    egui::vec2(col_w, columns_h),
                     egui::Layout::top_down(egui::Align::Min),
                     |ui| {
                         live_status_panel(ui, page);

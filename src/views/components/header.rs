@@ -67,5 +67,12 @@ pub fn footer_status(ui: &mut egui::Ui, app: &HomePage, message: &str) {
     } else {
         p.text_dim
     };
-    ui.label(RichText::new(format!("Synced · {text}")).size(12.0).color(color));
+    ui.add(
+        egui::Label::new(
+            RichText::new(format!("Synced · {text}"))
+                .size(12.0)
+                .color(color),
+        )
+        .wrap(),
+    );
 }

@@ -2,7 +2,6 @@ mod color_helper;
 mod logo_helper;
 mod path_helper;
 mod time_helper;
-pub mod update_helper;
 
 pub use color_helper::*;
 pub use logo_helper::*;
