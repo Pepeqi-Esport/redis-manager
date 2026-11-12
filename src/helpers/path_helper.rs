@@ -21,16 +21,16 @@ pub fn path_beside_exe(relative: impl AsRef<Path>) -> Result<PathBuf, String> {
     Ok(exe_dir()?.join(relative))
 }
 
-pub fn theme_json_path() -> PathBuf {
-    exe_dir_or_cwd().join("theme.json")
+pub fn config_json_path() -> PathBuf {
+    exe_dir_or_cwd().join("config.json")
 }
 
-/// Create required sidecar files beside the exe if they are missing (`theme.json`).
+/// Create required sidecar files beside the exe if they are missing (`config.json`).
 /// Safe to call on every launch.
 pub fn ensure_sidecar_config_files() {
-    let theme = theme_json_path();
-    if !theme.is_file() {
-        let _ = std::fs::write(&theme, "{\n  \"theme\": \"system\"\n}\n");
+    let config = config_json_path();
+    if !config.is_file() {
+        let _ = std::fs::write(&config, "{\n  \"theme\": \"system\"\n}\n");
     }
 }
 
