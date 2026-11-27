@@ -5,15 +5,15 @@ edition = "2021"
 description = "Interactive Redis start/stop manager powered by egui"
 
 [dependencies]
-eframe = { version = "0.31", default-features = true, features = ["default_fonts"] }
-egui = "0.31"
+eframe = { version = "0.37", default-features = true, features = ["default_fonts"] }
+egui = "0.37"
 image = { version = "0.25", default-features = false, features = ["png"] }
 rust-embed = { version = "8", features = ["include-exclude"] }
 
 [build-dependencies]
 image = { version = "0.25", default-features = false, features = ["png"] }
-ico = "0.4"
+ico = "0.6"
 winres = "0.1"
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.55"
+winreg = "0.56"

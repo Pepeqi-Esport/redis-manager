@@ -147,33 +147,32 @@ pub fn system_is_dark() -> bool {
 }
 
 pub fn configure_style(ctx: &egui::Context) {
-    let mut style = (*ctx.style()).clone();
-    style.spacing.item_spacing = Vec2::new(10.0, 10.0);
-    style.spacing.button_padding = Vec2::new(14.0, 8.0);
-    style.spacing.window_margin = egui::Margin::same(0);
-    style.interaction.show_tooltips_only_when_still = true;
+    ctx.all_styles_mut(|style| {
+        style.spacing.item_spacing = Vec2::new(10.0, 10.0);
+        style.spacing.button_padding = Vec2::new(14.0, 8.0);
+        style.spacing.window_margin = egui::Margin::same(0);
+        style.interaction.show_tooltips_only_when_still = true;
 
-    style.text_styles.insert(
-        TextStyle::Heading,
-        FontId::new(24.0, FontFamily::Proportional),
-    );
-    style.text_styles.insert(
-        TextStyle::Body,
-        FontId::new(14.0, FontFamily::Proportional),
-    );
-    style.text_styles.insert(
-        TextStyle::Button,
-        FontId::new(13.5, FontFamily::Proportional),
-    );
-    style.text_styles.insert(
-        TextStyle::Small,
-        FontId::new(12.0, FontFamily::Proportional),
-    );
-    ctx.set_style(style);
+        style.text_styles.insert(
+            TextStyle::Heading,
+            FontId::new(24.0, FontFamily::Proportional),
+        );
+        style.text_styles.insert(
+            TextStyle::Body,
+            FontId::new(14.0, FontFamily::Proportional),
+        );
+        style.text_styles.insert(
+            TextStyle::Button,
+            FontId::new(13.5, FontFamily::Proportional),
+        );
+        style.text_styles.insert(
+            TextStyle::Small,
+            FontId::new(12.0, FontFamily::Proportional),
+        );
+    });
 }
 
-pub fn apply_theme(ctx: &egui::Context, preference: ThemePreference) {
-    let dark = preference.resolves_dark();
+fn build_visuals(dark: bool) -> egui::Visuals {
     let p = Palette::for_dark(dark);
 
     let mut visuals = if dark {
@@ -225,5 +224,15 @@ pub fn apply_theme(ctx: &egui::Context, preference: ThemePreference) {
     visuals.widgets.hovered.corner_radius = CornerRadius::same(10);
     visuals.widgets.active.corner_radius = CornerRadius::same(10);
 
-    ctx.set_visuals(visuals);
+    visuals
+}
+
+pub fn apply_theme(ctx: &egui::Context, preference: ThemePreference) {
+    ctx.set_theme(match preference {
+        ThemePreference::System => egui::ThemePreference::System,
+        ThemePreference::Light => egui::ThemePreference::Light,
+        ThemePreference::Dark => egui::ThemePreference::Dark,
+    });
+    ctx.set_visuals_of(egui::Theme::Dark, build_visuals(true));
+    ctx.set_visuals_of(egui::Theme::Light, build_visuals(false));
 }

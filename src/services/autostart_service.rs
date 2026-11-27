@@ -168,7 +168,7 @@ fn create_entry() -> Result<(), String> {
             RUN_VALUE_NAME,
             &RegValue {
                 vtype: REG_BINARY,
-                bytes: STARTUP_APPROVED_ENABLED.to_vec(),
+                bytes: STARTUP_APPROVED_ENABLED.to_vec().into(),
             },
         )
         .map_err(|e| format!("Failed to enable startup approval: {e}"))?;

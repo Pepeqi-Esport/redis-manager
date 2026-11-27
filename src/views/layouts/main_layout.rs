@@ -5,7 +5,7 @@ use crate::views::components::{
 use crate::views::pages::HomePage;
 use eframe::egui;
 
-pub fn main_layout(ctx: &egui::Context, page: &mut HomePage) {
+pub fn main_layout(ui: &mut egui::Ui, page: &mut HomePage) {
     let bg = page.palette().bg;
     egui::CentralPanel::default()
         .frame(
@@ -13,7 +13,7 @@ pub fn main_layout(ctx: &egui::Context, page: &mut HomePage) {
                 .fill(bg)
                 .inner_margin(egui::Margin::symmetric(20, 18)),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             let logo = page.logo.clone();
             app_header(ui, page, &logo);
             ui.add_space(18.0);

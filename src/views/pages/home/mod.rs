@@ -79,7 +79,7 @@ impl HomePage {
 }
 
 impl eframe::App for HomePage {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll_worker();
         self.sync_system_theme(ctx);
 
@@ -91,6 +91,9 @@ impl eframe::App for HomePage {
         }
 
         ctx.request_repaint_after(Duration::from_millis(UI_REPAINT_INTERVAL_MS));
-        main_layout(ctx, self);
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        main_layout(ui, self);
     }
 }
