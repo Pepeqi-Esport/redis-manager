@@ -39,19 +39,35 @@ fn embed_windows_icon() -> Result<(), Box<dyn std::error::Error>> {
     let ico_path = out.join("app_icon.ico");
     write_ico("assets/images/logo/logo.png", &ico_path)?;
 
-    let mingw_bin = mingw_bin_dir();
+    let is_gnu = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("gnu");
     let mut res = winres::WindowsResource::new();
-    if let Some(bin) = mingw_bin.as_ref() {
-        let windres = bin.join("windres.exe");
-        let ar = bin.join("ar.exe");
-        if windres.exists() {
-            res.set_windres_path(windres.to_str().unwrap());
-        }
-        if ar.exists() {
-            res.set_ar_path(ar.to_str().unwrap());
+    if is_gnu {
+        if let Some(bin) = mingw_bin_dir() {
+            let windres = bin.join("windres.exe");
+            let ar = bin.join("ar.exe");
+            if windres.exists() {
+                res.set_windres_path(windres.to_str().unwrap());
+            }
+            if ar.exists() {
+                res.set_ar_path(ar.to_str().unwrap());
+            }
         }
     }
-    res.set_icon(ico_path.to_str().unwrap());
+    // windres is picky about separators in the generated .rc path.
+    let icon_path = ico_path.to_string_lossy().replace('/', "\\");
+    res.set_icon(&icon_path);
+
+    // Stable copy for Inno Setup (installer/redis-manager.iss).
+    let installer_ico = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?)
+        .join("installer")
+        .join("app.ico");
+    if let Some(parent) = installer_ico.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Err(err) = std::fs::copy(&ico_path, &installer_ico) {
+        println!("cargo:warning=failed to copy installer app.ico: {err}");
+    }
+
     res.set("ProductName", "Redis Manager");
     res.set(
         "FileDescription",
@@ -59,11 +75,14 @@ fn embed_windows_icon() -> Result<(), Box<dyn std::error::Error>> {
     );
     res.compile()?;
 
-    // Force the resource archive into the final .exe (gnu + gc-sections).
-    let lib = out.join("libresource.a");
-    println!("cargo:rustc-link-arg=-Wl,--whole-archive");
-    println!("cargo:rustc-link-arg={}", lib.display());
-    println!("cargo:rustc-link-arg=-Wl,--no-whole-archive");
+    // Force the resource archive into the final .exe (gnu + gc-sections only).
+    // MSVC link.exe rejects -Wl flags (LNK1181).
+    if is_gnu {
+        let lib = out.join("libresource.a");
+        println!("cargo:rustc-link-arg=-Wl,--whole-archive");
+        println!("cargo:rustc-link-arg={}", lib.display());
+        println!("cargo:rustc-link-arg=-Wl,--no-whole-archive");
+    }
     Ok(())
 }
 

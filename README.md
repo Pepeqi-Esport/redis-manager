@@ -23,6 +23,31 @@ cargo build --release
 
 Binary output: `target/debug/redis-manager.exe` or `target/release/redis-manager.exe`.
 
+### Windows release (6 artifacts)
+
+Produces portable + installer for x64, x86, and ARM64 under `dist\`:
+
+- `redis-manager-{version}_portable_windows_64.exe`
+- `redis-manager-{version}_portable_windows_86.exe`
+- `redis-manager-{version}_portable_windows_arm64.exe`
+- `redis-manager-{version}_installer_windows_64.exe`
+- `redis-manager-{version}_installer_windows_86.exe`
+- `redis-manager-{version}_installer_windows_arm64.exe`
+
+Requires **Rust MSVC** targets (`x86_64`, `i686`, `aarch64`), Visual Studio **ARM64** build tools for cross-compile, and [Inno Setup 7](https://jrsoftware.org/isinfo.php) (6 also works).
+
+```powershell
+cargo release
+```
+
+Or:
+
+```powershell
+.\scripts\build-installer.ps1
+```
+
+Run `cargo build` once first so `installer\app.ico` is generated from the logo.
+
 ## Portable layout
 
 After the first run, files beside the exe look like:

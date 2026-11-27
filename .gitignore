@@ -1,4 +1,6 @@
 /target/
+/dist/
+/installer/app.ico
 runtime/redis/*.pid
 runtime/redis/dump.rdb
 runtime/redis/appendonly.aof
